@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Submissions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            padding: 20px;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            position: relative;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: #f1f1f1;
+            z-index: 10;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f1f1;
+        }
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .filter-container > div {
+            flex: 1;
+        }
+        select {
+            width: 100%;
+            padding: 5px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+    </style>
+    <script>
+        let submissions = []; // Store all submissions locally for filtering
+
+        const actionOptions = {
+            "Earth Excavation & Slurry Work": [
+                "Earth Excavation Work(Single Shifting) m3",
+                "Slurry Work(Single Shifting) m3",
+                "Slurry Work(Double Shifting) m3",
+                "Earth Work for Coffer(Single Shifting) m3",
+                "Earth Work by Tractor m3",
+                "DIESEL ISSUE IN LTRS"
+            ],
+            "GSB Work": [
+                "GSB Loading Work (in MT)",
+                "GSB Spreading Work (in MT)",
+                "GSB transportation Work (in MT)",
+                "DIESEL ISSUE IN LTRS"
+            ],
+            "LDPE Laying Work": [
+                "Excavation For Key (m3)",
+                "Dressing Work (m2)",
+                "Laying Work",
+                "DIESEL ISSUE IN LTRS"
+            ]
+        };
+
+        function loadSubmissions() {
+            google.script.run.withSuccessHandler(function(data) {
+                submissions = data; // Store fetched submissions
+                renderSubmissions(submissions); // Render submissions initially
+                populateFilterOptions(submissions); // Populate filter dropdowns
+            }).getNotPendingSubmissions();
+        }
+
+        function renderSubmissions(filteredSubmissions) {
+            const submissionsTableBody = document.getElementById('submissions-table-body');
+            submissionsTableBody.innerHTML = ''; // Clear previous content
+
+            if (filteredSubmissions.length === 0) {
+                const noDataRow = `<tr><td colspan="10" style="text-align:center; color:#888;">No completed submissions found.</td></tr>`;
+                submissionsTableBody.innerHTML = noDataRow;
+                return;
+            }
+
+            filteredSubmissions.forEach(function(submission) {
+                const images = submission.imageUrls.length > 0
+                    ? submission.imageUrls.map((url, index) => `
+                        <a href="${url}" target="_blank" style="color:blue; text-decoration:underline;">
+                            Image ${index + 1}
+                        </a>
+                      `).join('')
+                    : 'No Images Available';
+
+                const row = `
+                    <tr>
+                        <td>${submission.contractorName}</td>
+                        <td>${submission.email}</td>
+                        <td>${submission.date}</td>
+                        <td>${submission.job}</td>
+                        <td>${submission.action}</td>
+                        <td>${submission.measurements || 'N/A'}</td>
+                        <td>${submission.remarks || 'N/A'}</td>
+                        <td>${submission.reviewerAction}</td>
+                        <td>${submission.status}</td>
+                        <td>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                ${images}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                submissionsTableBody.innerHTML += row;
+            });
+        }
+
+        function populateFilterOptions(submissions) {
+            // Get unique values for each filter
+            const contractors = [...new Set(submissions.map(s => s.contractorName))];
+            const jobs = [...new Set(submissions.map(s => s.job))];
+            
+            // Populate filter dropdowns
+            populateDropdown('contractor-filter', contractors);
+            populateDropdown('job-filter', jobs);
+            // Clear action dropdown initially
+            populateDropdown('action-filter', []);
+        }
+
+        function populateDropdown(id, options) {
+            const dropdown = document.getElementById(id);
+            dropdown.innerHTML = '<option value="">All</option>'; // Default option
+
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                dropdown.appendChild(opt);
+            });
+        }
+
+        function applyFilters() {
+            const contractorFilter = document.getElementById('contractor-filter').value;
+            const jobFilter = document.getElementById('job-filter').value;
+            const actionFilter = document.getElementById('action-filter').value;
+
+            // Filter based on contractor, job, and action
+            const filteredSubmissions = submissions.filter(submission => {
+                return (
+                    (contractorFilter === '' || submission.contractorName === contractorFilter) &&
+                    (jobFilter === '' || submission.job === jobFilter) &&
+                    (actionFilter === '' || submission.action === actionFilter)
+                );
+            });
+
+            // Render filtered submissions
+            renderSubmissions(filteredSubmissions);
+
+            // Update action filter options based on selected job
+            updateActionFilterOptions(jobFilter);
+        }
+
+        function updateActionFilterOptions(selectedJob) {
+            const actionDropdown = document.getElementById('action-filter');
+            // Clear previous options
+            actionDropdown.innerHTML = '<option value="">All</option>';
+
+            if (selectedJob && actionOptions[selectedJob]) {
+                actionOptions[selectedJob].forEach(action => {
+                    const opt = document.createElement('option');
+                    opt.value = action;
+                    opt.textContent = action;
+                    actionDropdown.appendChild(opt);
+                });
+            }
+        }
+
+        // Load submissions when page loads
+        window.onload = loadSubmissions;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Historical Submissions</h1>
+
+        <!-- Filter Options -->
+        <div class="filter-container">
+            <div>
+                <label for="contractor-filter">Filter by Contractor</label>
+                <select id="contractor-filter" onchange="applyFilters()"></select>
+            </div>
+            <div>
+                <label for="job-filter">Filter by Job</label>
+                <select id="job-filter" onchange="applyFilters()"></select>
+            </div>
+            <div>
+                <label for="action-filter">Filter by Action</label>
+                <select id="action-filter" onchange="applyFilters()"></select>
+            </div>
+        </div>
+
+        <!-- Submissions Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Contractor</th>
+                        <th>Email</th>
+                        <th>Date</th>
+                        <th>Job</th>
+                        <th>Action</th>
+                        <th>Measurements</th>
+                        <th>Remarks</th>
+                        <th>Reviewer Action</th>
+                        <th>Status</th>
+                        <th>Images</th>
+                    </tr>
+                </thead>
+                <tbody id="submissions-table-body">
+                    <!-- Dynamic rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

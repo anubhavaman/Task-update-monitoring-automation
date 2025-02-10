@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: darkgrey;
+      font-weight: bold;
+      position: sticky;
+      top:0;
+      z-index:1;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .btn-approve {
+      background-color: #28a745;
+      color: white;
+    }
+    .btn-reject {
+      background-color: #dc3545;
+      color: white;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .status-pending {
+      color: #ffc107;
+      font-weight: bold;
+    }
+
+    .close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>
+    Admin Dashboard - Pending Submissions
+    <a
+      href="https://script.google.com/macros/s/AKfycbyLPH5GwO9N8U2bhzFG99Sr_WcgaqSohScKUHwPIU-dmP4MkR97A-FqkvsjZ59otsnRIQ/exec?page=completed"
+      style="
+        display: inline-block;
+        margin-left: 15px;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        text-align: center;
+      "
+      target="_blank"
+    >
+      Historical Submission
+    </a>
+  </h1>
+  <div id="submissions-table">Loading submissions...</div>
+</div>
+
+
+
+
+  <script>
+    function loadSubmissions() {
+      const tableDiv = document.getElementById('submissions-table');
+      tableDiv.innerHTML = 'Loading submissions...';
+
+      google.script.run
+        .withSuccessHandler(displaySubmissions)
+        .withFailureHandler(function(error) {
+          tableDiv.innerHTML = 'Error loading submissions: ' + error;
+          console.error('Failed to load submissions:', error);
+        })
+        .getPendingAdminSubmissions();
+    }
+
+    function displaySubmissions(submissions) {
+      const tableDiv = document.getElementById('submissions-table');
+      
+      if (!submissions || submissions.length === 0) {
+        tableDiv.innerHTML = '<p>No pending submissions found.</p>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Contractor Name</th>
+              <th>Date</th>
+              <th>Job</th>
+              <th>Action</th>
+              <th>Measurements</th>
+              <th>Remarks</th>
+              <th>Image URLs</th>
+              <th>Reviewer Action</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      submissions.forEach(submission => {
+        let imageLinks = 'No images';
+        if (submission.imageUrls && submission.imageUrls.length > 0) {
+          imageLinks = submission.imageUrls.map(url => 
+            `<a href="${url}" target="_blank" class="image-preview">image</a>`
+          ).join('<br>');
+        }
+        html += `
+          <tr>
+            <td>${submission.contractorName || ''}</td>
+            <td>${submission.date || ''}</td>
+            <td>${submission.job || ''}</td>
+            <td>${submission.action || ''}</td>
+            <td>${submission.measurements || ''}</td>
+            <td>${submission.remarks || ''}</td>
+            <td>${imageLinks}</td>
+            <td>${submission.reviewerAction || ''}</td>
+            <td><span class="status-pending">${submission.status || 'Pending'}</span></td>
+            <td>
+              <button class="btn btn-approve" onclick="updateAdminStatus(${submission.rowIndex}, 'Approved')">
+                Approve
+              </button>
+              <button class="btn btn-reject" onclick="updateAdminStatus(${submission.rowIndex}, 'Rejected')">
+                Reject
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      tableDiv.innerHTML = html;
+    }
+
+    function updateAdminStatus(rowIndex, status) {
+      if (!rowIndex || !status) {
+        alert('Invalid row or status');
+        return;
+      }
+
+      const button = event.target;
+      button.disabled = true;
+      button.textContent = 'Processing...';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          // Display success message
+          const tableDiv = document.getElementById('submissions-table');
+          const successMessage = document.createElement('p');
+          successMessage.textContent = `Admin status updated successfully: ${status}`;
+          successMessage.style.color = 'green';
+          successMessage.style.fontWeight = 'bold';
+          successMessage.style.marginTop = '10px';
+
+          // Remove any existing success messages before appending a new one
+          const existingMessage = document.getElementById('admin-success-message');
+          if (existingMessage) {
+            existingMessage.remove();
+          }
+          successMessage.id = 'admin-success-message';
+          tableDiv.parentElement.insertBefore(successMessage, tableDiv);
+
+          // Reload submissions to reflect the updated data
+          loadSubmissions();
+        })
+        .withFailureHandler(function(error) {
+          alert('Error: ' + error);
+          button.disabled = false;
+          button.textContent = status;
+        })
+        .updateAdminStatus(rowIndex, status);
+    }
+
+    window.onload = loadSubmissions;
+  </script>
+</body>
+</html>

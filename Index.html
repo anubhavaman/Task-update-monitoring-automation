@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <!-- Keep existing styles -->
+  <style>
+    /* ... (keep existing styles) ... */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    .form-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .form-item {
+      margin-bottom: 15px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .add-dates-btn, .submit-btn, .add-image-btn  {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .add-dates-btn:hover, .submit-btn:hover {
+      background-color: #45a049;
+    }
+    .dynamic-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f1f1f1;
+      border: 1px dashed #ccc;
+      position: relative;
+    }
+    .remove-section-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .remove-section-btn:hover {
+      background-color: #d32f2f;
+    }
+    
+    .status-message {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .status-pending {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    .image-container {
+      margin-top: 10px;
+    }
+    .image-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .image-item input[type="file"] {
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+    .remove-image-btn {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .remove-image-btn:hover {
+      background-color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Track Job Selection Form</h2>
+    <form id="jobForm">
+      <div class="form-item">
+        <label for="contractorName">Contractor Name</label>
+        <select name="contractorName" id="contractorName" required>
+          <option value="" disabled selected>Select a contractor</option>
+          <option value="R.K.CONST.">R.K.CONST.</option>
+          <option value="Harsh Earth Movers">Harsh Earth Movers</option>
+        </select>
+      </div>
+            <div class="form-item">
+        <label>Email</label>
+        <input 
+          type="email" 
+          id="empEmail" 
+          name="empEmail" 
+          required 
+          pattern="^[a-zA-Z0-9._%+-]+@(gmail\.com|ghcl\.co\.in)$" 
+          title="Email must end with @gmail.com or @ghcl.co.in">
+        <span class="error-message" style="color: red; font-size: 12px;"></span>
+      </div>
+      <div id="dynamic-sections">
+        <div class="dynamic-section">
+          <!-- <div class="form-item">
+            <label>Enter Date</label>
+            <input type="date" name="date" required>
+          </div> -->
+          <div class="form-item">
+            <label>Enter Date</label>
+            <input type="date" name="date" id="date-input" required>
+          </div>
+
+          <div class="form-item">
+            <label>Job</label>
+            <select name="job" required onchange="updateActionDropdown(this)">
+              <option value="">Select Job</option>
+              <option value="Earth Excavation & Slurry Work">Earth Excavation & Slurry Work</option>
+              <option value="GSB Work">GSB Work</option>
+              <option value="LDPE Laying Work">LDPE Laying Work</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label>Action</label>
+            <select name="action" required>
+              <option value="">Select Action</option>
+            </select>
+          </div>
+          <div class="form-item">
+              <label>Measurement</label>
+              <input type="number" name="measurements" required max="999999" min="0" step="1">
+          </div>
+          <div class="form-item">
+            <label>Remarks</label>
+            <textarea name="remarks" required minlength="5" maxlength="200"></textarea>
+          </div>
+          <div class="form-item">
+            <label>Upload Images</label>
+            <div class="image-container">
+                <div class="image-item">
+                    <input type="file" name="image" accept="image/*" >
+          </div>
+        </div>
+        <button type="button" class="add-image-btn" onclick="addImageField(this)">Add Another Image</button>
+        </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="add-dates-btn" id="addDatesBtn">Add Dates</button>
+        <button type="submit" class="submit-btn" id="submitBtn">Submit</button>
+      </div>
+    </form>
+  </div>
+
+
+  <script>
+
+    const emailInput = document.getElementById('empEmail');
+  const errorMessage = document.querySelector('.error-message');
+
+  emailInput.addEventListener('input', () => {
+    const pattern = /^[a-zA-Z0-9._%+-]+@(gmail\.com|ghcl\.co\.in)$/;
+    if (!emailInput.value.match(pattern)) {
+      emailInput.setCustomValidity('Enter an email ending with @gmail.com or @ghcl.co.in');
+      errorMessage.textContent = 'Enter an email ending with @gmail.com or @ghcl.co.in';
+    } else {
+      emailInput.setCustomValidity('');
+      errorMessage.textContent = '';
+    }
+  });
+
+  emailInput.addEventListener('invalid', () => {
+    if (emailInput.validity.valueMissing) {
+      emailInput.setCustomValidity('This field is required.');
+      errorMessage.textContent = 'This field is required.';
+    }
+  });
+
+
+       // Get the date input element
+        const dateInput = document.getElementById('date-input');
+
+        // Calculate the minimum date (15 days before today)
+        const today = new Date();
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - 15);
+
+        // Format the dates as YYYY-MM-DD
+        const minDate = pastDate.toISOString().split('T')[0];
+        const maxDate = today.toISOString().split('T')[0];
+
+        // Set the min and max attributes
+        dateInput.setAttribute('min', minDate);
+        dateInput.setAttribute('max', maxDate);
+
+
+
+
+    // Update form submission handler
+         const actionOptions = {
+      "Earth Excavation & Slurry Work": [
+        "Earth Excavation Work(Single Shifting) m3",
+        "Slurry Work(Single Shifting) m3",
+        "Slurry Work(Double Shifting) m3",
+        "Earth Work for Coffer(Single Shifting) m3",
+        "Earth Work by Tractor m3",
+        "DIESEL ISSUE IN LTRS"
+      ],
+      "GSB Work": [
+        "GSB Loading Work (in MT)",
+        "GSB Spreading Work (in MT)",
+        "GSB transportation Work (in MT)",
+        "DIESEL ISSUE IN LTRS"
+      ],
+      "LDPE Laying Work": [
+        "Excavation For Key (m3)",
+        "Dressing Work (m2)",
+        "Laying Work",
+        "DIESEL ISSUE IN LTRS"
+      ]
+    };
+
+    function updateActionDropdown(jobSelect) {
+      const section = jobSelect.closest('.dynamic-section');
+      const actionDropdown = section.querySelector('[name="action"]');
+      const selectedJob = jobSelect.value;
+
+      actionDropdown.innerHTML = '<option value="">Select Action</option>';
+
+      if (selectedJob && actionOptions[selectedJob]) {
+        actionOptions[selectedJob].forEach(action => {
+          const option = document.createElement('option');
+          option.value = action;
+          option.textContent = action;
+          actionDropdown.appendChild(option);
+        });
+      }
+    }
+
+    function addImageField(btn) {
+      const imageContainer = btn.previousElementSibling;
+      const imageItem = document.createElement('div');
+      imageItem.classList.add('image-item');
+      imageItem.innerHTML = `
+        <input type="file" name="image" accept="image/*" required>
+        <button type="button" class="remove-image-btn" onclick="removeImageField(this)">Remove</button>
+      `;
+      imageContainer.appendChild(imageItem);
+    }
+
+    function removeImageField(btn) {
+      btn.parentElement.remove();
+    }
+
+    const dynamicSections = document.getElementById('dynamic-sections');
+    const addDatesBtn = document.getElementById('addDatesBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Function to increment date by one day
+    function incrementDate(dateString) {
+      const date = new Date(dateString);
+      date.setDate(date.getDate() + 1);
+      return date.toISOString().split('T')[0];
+    }
+
+    // Function to add remove button to sections
+    function addRemoveButton(section) {
+      if (dynamicSections.children.length > 1) {
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.type = 'button';
+        removeBtn.classList.add('remove-section-btn');
+        removeBtn.addEventListener('click', () => {
+          section.remove();
+        });
+        section.appendChild(removeBtn);
+      }
+    }
+
+    // Add a dynamic section when 'Add Dates' is clicked
+    addDatesBtn.addEventListener('click', () => {
+      const lastSection = dynamicSections.lastElementChild;
+      const lastDateInput = lastSection.querySelector('input[name="date"]');
+      const nextDate = lastDateInput.value ? incrementDate(lastDateInput.value) : '';
+
+      const section = document.createElement('div');
+      section.classList.add('dynamic-section');
+      section.innerHTML = `
+        <div class="form-item">
+          <label>Enter Date</label>
+          <input type="date" name="date" value="${nextDate}"  required>
+        </div>
+        <div class="form-item">
+          <select name="job" required onchange="updateActionDropdown(this)">
+              <option value="">Select Job</option>
+              <option value="Earth Excavation & Slurry Work">Earth Excavation & Slurry Work</option>
+              <option value="GSB Work">GSB Work</option>
+              <option value="LDPE Laying Work">LDPE Laying Work</option>
+            </select>
+          </div>
+        <div class="form-item">
+          <label>Action</label>
+          <select name="action" required>
+              <option value="">Select Action</option>
+            </select>
+          </div>
+        <div class="form-item">
+          <label>Measurement</label>
+          <input type="number" name="measurements" required max="999999" min="0" step="1">
+        </div>
+        <div class="form-item">
+          <label>Remarks</label>
+          <textarea name="remarks" required minlength="5" maxlength="200"></textarea>
+        </div>
+        <div class="form-item">
+          <label>Upload Images</label>
+          <div class="image-container">
+            <div class="image-item">
+              <input type="file" name="image" accept="image/*">
+            </div>
+          </div>
+          <button type="button" class="add-image-btn" onclick="addImageField(this)">Add Another Image</button>
+        </div>
+      `;
+      dynamicSections.appendChild(section);
+      addRemoveButton(section);
+    });
+
+    addRemoveButton(dynamicSections.firstElementChild);
+
+    document.getElementById('jobForm').onsubmit = async function (e) {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      const formData = new FormData(e.target);
+      const sectionsData = [];
+
+      const dynamicSectionElements = document.querySelectorAll('.dynamic-section');
+      for (const sectionElement of dynamicSectionElements) {
+        const imageInputs = sectionElement.querySelectorAll('[name="image"]');
+        const images = [];
+
+        for (const imageInput of imageInputs) {
+          const imageFile = imageInput.files[0];
+          if (imageFile) {
+            const reader = new FileReader();
+            const imageBase64 = await new Promise((resolve) => {
+              reader.onload = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(imageFile);
+            });
+            images.push({
+              data: imageBase64,
+              type: imageFile.type,
+              name: imageFile.name
+            });
+          }
+        }
+
+        const sectionData = {
+          date: sectionElement.querySelector('[name="date"]').value,
+          job: sectionElement.querySelector('[name="job"]').value,
+          action: sectionElement.querySelector('[name="action"]').value,
+          measurements: sectionElement.querySelector('[name="measurements"]').value,
+          remarks: sectionElement.querySelector('[name="remarks"]').value,
+          images: images
+        };
+        sectionsData.push(sectionData);
+      }
+
+      google.script.run.withSuccessHandler(function(response) {
+        alert(response);
+        e.target.reset();
+        while (dynamicSections.children.length > 1) {
+          dynamicSections.lastChild.remove();
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit';
+      }).submitFormData({
+        contractorName: formData.get('contractorName'),
+        empEmail: formData.get('empEmail'),
+        sectionsData: sectionsData
+      });
+    };
+
+
+   document.getElementById('jobForm').onsubmit = async function (e) {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      const formData = new FormData(e.target);
+      const sectionsData = [];
+
+      const dynamicSectionElements = document.querySelectorAll('.dynamic-section');
+      for (const sectionElement of dynamicSectionElements) {
+        const imageInputs = sectionElement.querySelectorAll('[name="image"]');
+        const images = [];
+
+        for (const imageInput of imageInputs) {
+          const imageFile = imageInput.files[0];
+          if (imageFile) {
+            const reader = new FileReader();
+            const imageBase64 = await new Promise((resolve) => {
+              reader.onload = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(imageFile);
+            });
+            images.push({
+              data: imageBase64,
+              type: imageFile.type,
+              name: imageFile.name
+            });
+          }
+        }
+
+        const sectionData = {
+          date: sectionElement.querySelector('[name="date"]').value,
+          job: sectionElement.querySelector('[name="job"]').value,
+          action: sectionElement.querySelector('[name="action"]').value,
+          measurements: sectionElement.querySelector('[name="measurements"]').value,
+          remarks: sectionElement.querySelector('[name="remarks"]').value,
+          images: images
+        };
+        sectionsData.push(sectionData);
+      }
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          alert('Form submitted successfully!');
+          e.target.reset();
+          while (dynamicSections.children.length > 1) {
+            dynamicSections.lastChild.remove();
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          
+          setTimeout(function() {
+            location.reload();
+          }, 500);
+        })
+        .withFailureHandler(function(error) {
+          alert('Error: ' + error);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+        })
+        .submitFormData({
+          contractorName: formData.get('contractorName'),
+          empEmail: formData.get('empEmail'),
+          sectionsData: sectionsData
+        });
+    };
+  </script>
+</body>
+</html>
